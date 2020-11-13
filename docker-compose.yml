@@ -1,0 +1,65 @@
+version: '3.4'
+
+services:
+  zookeeper:
+    image: wurstmeister/zookeeper
+    container_name: zookeeperlocal
+    expose:
+      - 2181
+    volumes:
+      - zookeeper-data:/opt/zookeeper/logs
+      
+  kafka:
+    image: wurstmeister/kafka
+    container_name: kafkalocal
+    expose:
+      - 9092
+    environment:
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181/local
+      KAFKA_ADVERTISED_HOST_NAME: kafka
+      KAFKA_ADVERTISED_PORT: 9092
+    volumes:
+      - kafka-data:/opt/kafka/logs
+      
+  kafka-manager:
+    image: zenko/kafka-manager:2.0.0.2
+    container_name: kafkamanagerlocal
+    ports:
+      - 9000:9000
+    environment:
+      ZK_HOSTS: zookeeper:2181
+      KAFKA_MANAGER_AUTH_ENABLED: "false"
+
+  kafkasample.producer:
+    build:
+      context: .
+      dockerfile: KafkaSample.Producer/Dockerfile
+    container_name: producer_local
+    depends_on:
+      - "zookeeper"
+      - "kafka"
+
+  kafkasample.consumer:
+    build:
+      context: .
+      dockerfile: KafkaSample.Consumer/Dockerfile
+    container_name: consumer_local
+    depends_on:
+      - "zookeeper"
+      - "kafka"
+
+  kafkasample.signalrconsumer:
+    build:
+      context: .
+      dockerfile: KafkaSample.SignalRConsumer/Dockerfile
+    container_name: signalr_consumer_local
+    ports:
+      - 9080:80
+      - 9443:443
+    depends_on:
+      - "zookeeper"
+      - "kafka"
+
+volumes:
+  kafka-data:
+  zookeeper-data:
